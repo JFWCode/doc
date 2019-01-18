@@ -1,0 +1,154 @@
+代码:
+java部分:
+外部请求的:OnRequestListener 根据数据的name在VrActionFactory 函数创建对应的对象,实现action(如打电话...)
+OnResponseListener.java : 向内部传递信息(调用的过程在jni中有写)
+OnRequestListener.java :外部请求 
+VrSvcListener::getAppService()  返回一个VrAppService对象
+VrAppService 各种action都在该类中调用.p
+jni:
+OnResponseListener类 调用VrServieceJni 类的native方法,就会调用到com_iauto_vr_VrAppService_jni.cpp 获得native的 c++实现.最后又调用VR_ModuleIF::Instance()  获得VR_Module_imp,再调用相关的方法.
+
+ArrayBlockingQueue 阻塞队列
+添加方法:
+put：添加元素到队列里，如果容量满了会阻塞直到容量不满
+删除方法:
+1.take：删除队列头部元素，如果队列为空，一直阻塞到队列有元素并删	除
+
+
+VrIautoLinkAgendaListener::notifyServerEvent()
+当agenda的数据list不止一个对象时,VrReqReminder也要是list类型?
+
+
+c++部分
+VR_ReceiverCb.cpp:
+结构体 VR_EVENT_FUNC中的msgMap 第一个变量值是对应的信息的名字,第二个变量值是对应的函数地址, 第三个是新建一个对象获取对应的proto文件.
+外部调用的应该是OnMessage这个函数:
+通过msgName参数来获得有相同msaName的msgMap中的第二个变量值,保存在callback变量中
+在调用GetProto:通过msgName获得与之对应msgName的msgMap的第三个参数的值,来获得proto
+ParseFromString()的函数反序列化proto数据,将数据从string格式转换成proto的格式,在进行操作
+callback调用函数.(回调函数) 传入的msg是上一步获得的proto数据
+
+
+调用的顺序:
+VR_ModuleIF::Instance()  -> VR_Modulelmp::Instance() 
+VR_ModuleImp::OneMessage() -> VR_Controller::onMessage() -> VR_ReceoverCb::onMessage() 
+
+
+注意点:
+VrActionAddCalendar::doActino() 
+对type类型做判断.
+1有normal和destination 
+
+VrActionQueryCalendar::doaction()
+对endtime做判断	
+1是否为空,
+2是否比starttime晚
+
+
+还差的是日志只能有一个.要用list来存???
+修改VrReminderCb.proto文件中添加 repeated字段.做成类似数组
+
+
+知识点:
+parseFrom(InputStream)    反序列化protobuf
+proto = parseFrom(inputStream)  
+proto.name
+proto.tel ....
+
+高德地图的intent:
+        Intent intent = new Intent();
+        intent.setAction(ACTION_NAME);
+        intent.putExtra("KEY_TYPE", 10008);
+        listener.sendIntent(intent);   (实现的是sendBroadCast(intent))
+
+JNI:
+Android的jni不需要JNIEXPROT 和JNICALL的宏,当然写上去也不会错.
+动态注册的方法: (不需要用javah生成头文件)
+步骤1:用c/c++实现java代码中的native方法
+步骤2:讲方法按规则添加到结构体中JNINativeMethod数组中.
+步骤3:registerNativeMethods 方法的实现
+步骤4:JNI_OnLoad()设置JNI_VERSION版本,并调用registerNativeMethods向VM登记
+
+typedef struct {   
+      const char* name;　　　　　/* java 中声明的本地方法名称 */    
+　　　const char* signature;　　/* 描述了函数的参数和返回值 */
+　　　void*       fnPtr;　　　　/* c/c++的函数指针 */5  } JNINativeMethod; 
+
+实例:
+ static JNINativeMethod gMethods[] = {
+     { "stringFromJNI", "()Ljava/lang/String;", (void *)stringFromJNI },
+ };
+
+结构体中额signature的值()表示参数列表,后面的是返回值.
+　　字符   Java类型     C类型
+　　V      void         void
+　　Z      jboolean     boolean
+　　I       jint         int
+　　J       jlong        long
+　　D      jdouble       double
+　　F      jfloat            float
+　　B      jbyte            byte
+　　C      jchar           char
+　　S      jshort          short
+　　数组则以"["开始，用两个字符表示
+　　[I     jintArray       int[]
+　　[F     jfloatArray     float[]
+　　[B     jbyteArray     byte[]
+　　[C    jcharArray      char[]
+　　[S    jshortArray      short[]
+　　[D    jdoubleArray    double[]
+　　[J     jlongArray      long[]
+　　[Z    jbooleanArray    boolean[]
+
+registerNativeMethods(jclass clazz, const JNINativeMethod* methods,
+        jint nMethods)
+
+c++调用java的类或者类方法.:
+FindClass:		
+jclass FindClass(JNIEnv *env, const char *name);  //name是包名
+c语言
+jclass clz=(*env)->FindClass(env，"com/jjz/JniHandle");
+c++
+jclass clz=env->FindClass("com/jjz/JniHandle"); 
+
+GetMethodID:
+jmethodID GetMethodID(JNIEnv *env, jclass clazz,
+const char *name, const char *sig);
+c语言
+jmethodID getStringFromJava =  (*env)->GetMethodID(env,class,"getStringForJava","()V");
+c++
+jmethodID getStringFromJava =  env->GetMethodID(class,"getStringForJava","()V");
+
+
+GetStaticMethodID:
+jmethodID GetStaticMethodID(JNIEnv *env, jclass clazz,
+const char *name, const char *sig);
+
+
+boost:bind(fun, _1, _2)   
+fun是函数地址 _1,_2 都是占位符.将调用该fun函数的实参的第一和第二个绑定到fun的对应位置
+要是非静态成员函数:
+boost:bind(fun, this, 1, 2)   //要将对象传进第二个参数中.这样才能在对应的类中找到
+
+boost::function<返回值类型 (参数)>  f
+f 可以赋值	为和上面<>中返回值和参数列表完全一致的函数(有点像函数指针,但是比函数指针强大)
+ 
+boost:factory
+boost::factory<T*>()(arg1,arg2,arg3) 
+// same as new T(arg1,arg2,arg3)
+
+举个栗子:
+void test(int a, int b)
+{
+　　bind:boost(fun, _1, _2)   //_1,_2就是分别是a,b  
+　　
+}
+
+
+c++中 :: 开头表示顶层作用域.(全局变量)
+
+
+
+
+
+
