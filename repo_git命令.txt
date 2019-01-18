@@ -1,0 +1,60 @@
+git常用命令：
+git add -A .
+git commit -m "platform/service/BeepService, branch:17cyplus/master/1ll1.5plus, 修改makefile和yaml"
+git commit --amend   (Redmine/Any: http://iredmine/issues/169668)
+git commit --amend --no-edit 不编辑直接提交
+git commit -a -m ""
+-a 参数表示，可以将所有已跟踪文件中的执行修改或删除操作的文件都提交到本地仓库，即使它们没有经过git add添加到暂存区。
+git push origin 17Cy_T0Stable_010B:refs/for/17Cy/MileStone/17CY_T0_Stable_010B
+
+git clean -fdx:清除未跟踪的文件和目录, 包括.gitignore文件指定的
+git reset HEAD~1
+git reset HEAD~1 --hard
+git diff 
+git reset --hard + commitid  //恢复到指定commitid的记录之前。
+git checkout -- file 文件回退到上一次commit或者add的状态
+git merge <name> 合并某分支到当前分支
+
+git stash 隐藏修改过得文件,使分支上是干净的
+git stash list 查看隐藏的信息
+git stash pop  还原隐藏的文件
+
+建立本地分支和远程分支的关联，使用git branch --set-upstream-to origin/<branch-name> <branch-name>
+
+重拉在gerrit上的未merge的代码.
+git reset --hard HEAD~2  返回到一远程一致
+git pull  更新远程的代码
+git fetch ssh://xxxx refs/changes/46/28146/1 && git cherry-pick FETCH_HEAD   获取gerrit上的修改过的代码到本地
+
+gerrit中的git 参数
+refs/heads/master   直接进不需要review
+refs/for/master      需要review的
+变基:
+git rebase 自动讲多个用户的修改合并成一个主线上.有些冲突会提醒还是要手动去修改
+
+1.git rebase --onto master server client 以上命令的意思是：“取出 client 分支，找出处于 client 分支和 server 分支的共同祖先之后的修改，然后把它们在 master 分支上重放一遍”
+
+2.变基之后需要再在master分支merge client 这样就可以到将client合并到master分支上了
+
+仓库回归为最初的版本
+repo forall -c git clean -fdx
+repo forall -c git checkout .
+
+repo sync
+
+代码回滚:
+删除最后一次远程提交
+
+方式一：使用revert
+git revert HEAD
+git push origin master
+
+方式二：使用reset
+git reset --hard HEAD^
+git push origin master -f
+
+二者区别：
+revert是放弃指定提交的修改，但是会生成一次新的提交，需要填写提交注释，以前的历史记录都在；
+reset是指将HEAD指针指到指定提交，历史记录中不会出现放弃的提交记录。
+
+
